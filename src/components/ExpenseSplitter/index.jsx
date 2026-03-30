@@ -39,6 +39,7 @@ const defaultPeople = [
   'E Huyền 2k6',
   'Đức Anh',
   'Ny Đức Anh',
+  'Bin',
   'Phong bé'
 ]
 
