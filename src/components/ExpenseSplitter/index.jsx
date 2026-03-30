@@ -28,17 +28,18 @@ const db = getFirestore(app)
 const expensesCollection = collection(db, 'expenses')
 
 const defaultPeople = [
-  'Huyền',
-  'Hân',
-  'Thím Nhung',
-  'Bác Dung',
-  'Anh Toàn',
-  'Chị Diệu',
-  'Nam',
-  'Bin',
-  'Chị Linh',
-  'Anh Hiệp',
-  'Thảo Vân',
+  'Namdepzai',
+  'Hiếu au',
+  'Hiếu C',
+  'Trang',
+  'Tuấn Đ',
+  'Hương',
+  'Tuấn béo',
+  'Đông béo',
+  'E Huyền 2k6',
+  'Đức Anh',
+  'Ny Đức Anh',
+  'Phong bé'
 ]
 
 export default function ExpenseSplitter() {
