@@ -1,6 +1,5 @@
-import logo from './logo.svg';
 import './App.css';
-import ExpenseSplitter from './components/ExpenseSplitter';
+import ExpenseSplitter from './pages/ExpenseSplitter';
 
 function App() {
   return (

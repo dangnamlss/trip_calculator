@@ -1,30 +1,9 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import * as XLSX from 'xlsx'
-import { initializeApp } from 'firebase/app'
-import {
-  getFirestore,
-  collection,
-  addDoc,
-  getDocs,
-  deleteDoc,
-  doc,
-  onSnapshot,
-  setDoc,
-  query,
-  orderBy,
-} from 'firebase/firestore'
 
-const firebaseConfig = {
-  apiKey: 'AIzaSyCgvIbstsX35v_GXXTCAGBbwkj8xm0Xs5k',
-  authDomain: 'app-du-lich-e11b6.firebaseapp.com',
-  projectId: 'app-du-lich-e11b6',
-  storageBucket: 'app-du-lich-e11b6.firebasestorage.app',
-  messagingSenderId: '404808342317',
-  appId: '1:404808342317:web:addcf48201570014e391a4',
-}
+import { addDoc, collection, deleteDoc, doc, onSnapshot, orderBy, query, setDoc } from 'firebase/firestore'
+import { db } from '../../firebase/firestore'
 
-const app = initializeApp(firebaseConfig)
-const db = getFirestore(app)
 const expensesCollection = collection(db, 'expenses')
 
 const defaultPeople = [
@@ -51,10 +30,21 @@ export default function ExpenseSplitter() {
 
   useEffect(() => {
     const q = query(expensesCollection, orderBy('createdAt', 'desc'))
-    const unsub = onSnapshot(q, (snapshot) => {
-      const docs = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
-      setExpenses(docs)
-    })
+
+    const unsub = onSnapshot(
+      q,
+      (snapshot) => {
+        const docs = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }))
+        setExpenses(docs)
+      },
+      (error) => {
+        console.error('Firestore error:', error)
+      }
+    )
+
     return () => unsub()
   }, [])
 
@@ -74,62 +64,62 @@ export default function ExpenseSplitter() {
 
   const saveNewExpense = async (tempId) => {
     const expense = expenses.find((e) => e.id === tempId)
-    const newDoc = {
+
+    await addDoc(expensesCollection, {
       title: expense.title,
       amount: expense.amount,
       expanded: false,
       createdAt: new Date(),
       participants: expense.participants,
-    }
-    const docRef = await addDoc(expensesCollection, newDoc)
+    })
+
     setExpenses((prev) => prev.filter((e) => e.id !== tempId))
   }
 
   const updateExpense = async (id, data) => {
-    data.expanded = false
-    const expense = expenses.find((e) => e.id === id)
-    const updated = { ...expense, ...data }
-    await setDoc(doc(db, 'expenses', id), updated)
+    await setDoc(doc(db, 'expenses', id), {
+      ...data,
+      expanded: false,
+    })
     setEditing((prev) => ({ ...prev, [id]: false }))
   }
 
   const deleteExpense = async (id) => {
-    const exp = expenses.find((e) => e.id === id)
-    const confirmDelete = window.confirm(
-      `Bạn có chắc chắn muốn xóa khoản chi "${exp.title || 'không tên'}"?`
-    )
-    if (confirmDelete) {
-      if (id.startsWith('temp-')) {
-        setExpenses((prev) => prev.filter((e) => e.id !== id))
-      } else {
-        await deleteDoc(doc(db, 'expenses', id))
-      }
+    if (id.startsWith('temp-')) {
+      setExpenses((prev) => prev.filter((e) => e.id !== id))
+    } else {
+      await deleteDoc(doc(db, 'expenses', id))
     }
   }
 
   const toggleParticipant = (expenseId, name) => {
     setExpenses((prev) =>
-      prev.map((exp) => {
-        if (exp.id !== expenseId) return exp
-        return {
-          ...exp,
-          participants: exp.participants.map((p) =>
-            p.name === name ? { ...p, included: !p.included } : p
-          ),
-        }
-      })
+      prev.map((exp) =>
+        exp.id === expenseId
+          ? {
+              ...exp,
+              participants: exp.participants.map((p) =>
+                p.name === name ? { ...p, included: !p.included } : p
+              ),
+            }
+          : exp
+      )
     )
   }
 
   const checkAllParticipants = (expenseId) => {
     setExpenses((prev) =>
-      prev.map((exp) => {
-        if (exp.id !== expenseId) return exp
-        return {
-          ...exp,
-          participants: exp.participants.map((p) => ({ ...p, included: true })),
-        }
-      })
+      prev.map((exp) =>
+        exp.id === expenseId
+          ? {
+              ...exp,
+              participants: exp.participants.map((p) => ({
+                ...p,
+                included: true,
+              })),
+            }
+          : exp
+      )
     )
   }
 
@@ -143,33 +133,42 @@ export default function ExpenseSplitter() {
   const calculateSummary = () => {
     const totals = {}
     defaultPeople.forEach((name) => (totals[name] = 0))
+
     expenses.forEach((exp) => {
       if (!exp.amount) return
+
       const rawAmount = parseFloat(parseCurrency(exp.amount || '0'))
       const included = exp.participants.filter((p) => p.included)
-      const split = included.length > 0 ? rawAmount / included.length : 0
+      const split = included.length ? rawAmount / included.length : 0
+
       included.forEach((p) => {
         totals[p.name] += split
       })
     })
+
     setSummary(totals)
     setShowModal(true)
   }
 
   const exportToExcel = () => {
     const wb = XLSX.utils.book_new()
+
     const rows = Object.entries(summary).map(([name, amount]) => ({
       Người: name,
       'Tổng chi trả (đ)': parseInt(amount.toFixed(0), 10),
     }))
+
     const ws = XLSX.utils.json_to_sheet(rows)
     XLSX.utils.book_append_sheet(wb, ws, 'Tổng hợp')
     XLSX.writeFile(wb, 'tong_hop_chi_tieu.xlsx')
   }
 
-  const totalAmount = Object.values(summary).reduce((sum, val) => sum + val, 0)
+  const totalAmount = Object.values(summary).reduce(
+    (sum, val) => sum + val,
+    0
+  )
 
-  return (
+   return (
     <div className="container mt-4">
       <div className="d-flex gap-2 mb-3">
         <button onClick={addExpense} className="btn btn-primary w-100">
