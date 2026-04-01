@@ -17,9 +17,11 @@ const defaultPeople = [
   'Đông béo',
   'E Huyền 2k6',
   'Đức Anh',
-  'Ny Đức Anh',
+  'Quỳnh',
   'Bin',
-  'Phong bé'
+  'Phong bé',
+  'Phong fish',
+  'E Huyền 2k7'
 ]
 
 export default function ExpenseSplitter() {
