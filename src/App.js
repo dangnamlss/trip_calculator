@@ -1,10 +1,10 @@
 import './App.css';
-import ExpenseSplitter from './pages/ExpenseSplitter';
+import LoginPage from './pages/Login';
 
 function App() {
   return (
     <div className="App">
-      <ExpenseSplitter></ExpenseSplitter>
+      <LoginPage />
     </div>
   );
 }
